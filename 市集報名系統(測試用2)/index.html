@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>市集報名系統</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Noto+Sans+TC:wght@300;400;700&family=Zen+Maru+Gothic:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* ================= 前台樣式 (完全保留您原本的設計) ================= */
+    :root { 
+      --bg: #FDFBF7; --card: rgba(255, 255, 255, 0.95); 
+      --primary: #A08D7D; --accent: #8B5E3C; --text: #444; 
+      --border: #DECeb5; --font-family: 'Noto Serif TC', serif; 
+      --radius: 12px; --shadow: 0 10px 25px rgba(0, 0, 0, 0.08); 
+      
+      /* 後台狀態顏色 (新增) */
+      --st-paid-bg: #d1e7dd; --st-paid-text: #0f5132;   /* 綠 */
+      --st-unpaid-bg: #f8d7da; --st-unpaid-text: #842029; /* 紅 */
+      --st-refund-bg: #e2e3e5; --st-refund-text: #636464; /* 灰 */
+      --st-audit-bg: #fff3cd; --st-audit-text: #664d03;   /* 黃 */
+      --st-ok-bg: #cff4fc; --st-ok-text: #055160;         /* 藍 */
+      --st-ban-bg: #212529; --st-ban-text: #fff;          /* 黑 */
+    }
+
+    body { font-family: var(--font-family); color: var(--text); background-color: var(--bg); padding: 0; margin: 0; line-height: 1.6; min-height: 100vh; position: relative; padding-bottom: 60px; }
+    body::before { content: ""; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; background-image: var(--bg-img); background-size: cover; background-position: center; background-repeat: no-repeat; filter: blur(8px) brightness(1.05); transform: scale(1.05); transition: background-image 0.5s ease; }
+    
+    .container { max-width: 900px; margin: 40px auto; background: var(--card); padding: 40px; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid rgba(255,255,255,0.6); backdrop-filter: blur(10px); }
+    h2, h3, h4 { text-align: center; color: var(--accent); margin-bottom: 25px; font-weight: bold; }
+    .brand-header { text-align: center; margin-bottom: 25px; } 
+    
+    .btn { padding: 12px 24px; background: var(--accent); color: white; border: none; border-radius: var(--radius); cursor: pointer; transition:0.2s; font-size:16px; font-weight: bold; letter-spacing: 1px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn:hover { filter: brightness(1.1); transform: translateY(-2px); }
+    .btn-sm { padding: 5px 12px; font-size: 13px; border-radius: 6px; border:none; cursor:pointer; color:white; background:#888; transition:0.2s;} 
+    
+    input, select, textarea { padding: 12px; border: 1px solid #ccc; border-radius: var(--radius); width: 100%; box-sizing: border-box; background: rgba(255,255,255,0.9); margin-bottom: 10px; font-family: sans-serif; }
+    input:focus, select:focus { border-color: var(--accent); outline: none; background: #fff; box-shadow: 0 0 0 3px rgba(139, 94, 60, 0.1); }
+
+    /* 前台 - 檔期卡片 */
+    .group-container { border: 1px solid #eee; border-radius: var(--radius); margin-bottom: 25px; overflow: hidden; background: #fff; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+    .group-header { padding: 18px 25px; background: #fafafa; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0f0; cursor: pointer; }
+    .group-title { font-weight: bold; font-size: 1.2em; color: var(--text); }
+    .group-date-range { font-size: 0.95em; color: #666; display: flex; align-items: center; gap: 8px; }
+    .group-desc-content { padding: 20px 25px; background: #fffcf5; color: #555; font-size: 0.95em; white-space: pre-wrap; display: none; line-height: 1.8; border-bottom: 1px dashed #eee; }
+    .desc-toggle-btn { background: none; border: 1px solid #ccc; padding: 4px 10px; border-radius: 20px; cursor: pointer; font-size: 0.85em; color: #666; }
+    
+    .date-grid { display: flex; flex-wrap: wrap; gap: 15px; padding: 20px; }
+    .date-card { flex: 1 1 calc(33.33% - 15px); min-width: 110px; border: 1px solid #e0e0e0; padding: 15px 10px; text-align: center; border-radius: var(--radius); cursor: pointer; background: #fff; transition:0.2s; position:relative; }
+    .date-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+    .date-card.selected { background: var(--accent); color: white; border-color: var(--accent); box-shadow: 0 5px 15px rgba(139, 94, 60, 0.3); }
+    .tag-full { position: absolute; top: -8px; right: -5px; background: #c0392b; color: white; font-size: 10px; padding: 2px 8px; border-radius: 12px; }
+
+    /* 前台 - 下拉選單區 */
+    .batch-card { background: #fff; border: 1px solid #eee; border-radius: 8px; padding: 20px; margin-bottom: 15px; border-left: 5px solid var(--accent); box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
+    .batch-header { font-weight: bold; font-size: 1.1em; margin-bottom: 5px; color: #333; }
+    .batch-dates { font-size: 0.9em; color: #666; margin-bottom: 10px; }
+    .batch-subtotal { text-align: right; font-weight: bold; color: var(--accent); margin-top: 10px; padding-top: 5px; border-top: 1px dashed #ccc; }
+
+    /* 浮水印 */
+    .watermark { position: fixed; bottom: 15px; right: 20px; font-weight: bold; color: var(--accent); opacity: 0.3; font-size: 14px; pointer-events: none; z-index: 9999; }
+
+    /* ================= 後台優化樣式 (V40) ================= */
+    .hidden { display: none !important; }
+    
+    .admin-nav { display:flex; gap:10px; margin-bottom:20px; border-bottom:2px solid #eee; padding-bottom:15px; flex-wrap: wrap;}
+    .admin-nav button { background:white; color:var(--text); border:1px solid #ddd; padding: 8px 16px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    .admin-nav button.active { background:var(--accent); color:white; border-color:var(--accent); }
+
+    /* 優化後的表格 (解決卷軸問題) */
+    .compact-table { width: 100%; border-collapse: collapse; font-size: 0.9em; background: #fff; }
+    .compact-table th { background: var(--primary); color: #fff; padding: 10px; text-align: left; font-weight: normal; }
+    .compact-table td { padding: 12px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
+    .compact-table tr:hover { background-color: #f9f9f9; }
+    
+    /* 資訊堆疊 (Info Stack) */
+    .info-stack { display: flex; flex-direction: column; gap: 2px; }
+    .info-main { font-weight: bold; font-size: 1em; color: #333; }
+    .info-sub { font-size: 0.85em; color: #777; }
+    .info-date { font-size: 0.8em; color: #999; margin-top: 2px; }
+    
+    /* 按鈕式狀態標籤 */
+    .status-select { 
+      appearance: none; -webkit-appearance: none; 
+      padding: 6px 12px; border-radius: 20px; 
+      border: 1px solid transparent; 
+      font-size: 0.85em; font-weight: bold; 
+      cursor: pointer; text-align: center;
+      width: 100%; min-width: 80px;
+      transition: 0.2s;
+    }
+    .status-select:hover { opacity: 0.9; transform: scale(1.05); }
+    
+    /* 狀態顏色 */
+    .st-paid { background: var(--st-paid-bg); color: var(--st-paid-text); }
+    .st-unpaid { background: var(--st-unpaid-bg); color: var(--st-unpaid-text); }
+    .st-refund { background: var(--st-refund-bg); color: var(--st-refund-text); text-decoration: line-through; }
+    .st-audit { background: var(--st-audit-bg); color: var(--st-audit-text); }
+    .st-ok { background: var(--st-ok-bg); color: var(--st-ok-text); }
+    .st-ban { background: var(--st-ban-bg); color: var(--st-ban-text); }
+
+    /* 財務報表卡片 */
+    .finance-block { border: 1px solid #ddd; margin-bottom: 25px; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+    .block-header { background: #333; color: #fff; padding: 12px 20px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+    .finance-summary { display: grid; grid-template-columns: repeat(4, 1fr); background: #f8f9fa; border-bottom: 1px solid #ddd; }
+    .f-item { text-align: center; padding: 15px 5px; border-right: 1px solid #ddd; }
+    .f-item:last-child { border-right: none; }
+    .f-val { font-size: 1.2em; font-weight: bold; display: block; margin-top: 5px; }
+    .val-green { color: #198754; } .val-red { color: #dc3545; } .val-gray { color: #6c757d; }
+
+    /* 排程總表視覺化 */
+    .schedule-block { margin-bottom: 20px; border: 1px solid #eee; border-radius: 8px; overflow: hidden; background: #fff; }
+    .schedule-date-row { border-bottom: 1px dashed #eee; padding: 12px 15px; display: flex; flex-direction: column; gap: 8px; }
+    .brand-pill { display: inline-flex; align-items: center; font-size: 0.85em; background: #fff; border: 1px solid #eee; padding: 4px 8px; border-radius: 12px; margin-right: 5px; margin-bottom: 5px; color:#444; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .dot-green { background: #198754; } /* 已繳 */
+    .dot-red { background: #dc3545; }   /* 未繳 */
+    .dot-gray { background: #6c757d; }  /* 已退費 */
+
+    /* Loading */
+    #loading { position: fixed; inset: 0; background: rgba(255,255,255,0.95); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--accent); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    
+    #admin-trigger { position: fixed; bottom: 5px; left: 5px; opacity: 0.1; cursor: pointer; font-size: 24px; z-index: 100; }
+    
+    @media (max-width: 600px) {
+      .container { padding: 20px; margin: 10px; width: auto; }
+      .date-card { flex: 1 1 calc(50% - 15px); }
+      .finance-summary { grid-template-columns: 1fr 1fr; }
+      .f-item { border-bottom: 1px solid #ddd; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="watermark">Designed by 文武茶心</div>
+
+  <div id="loading"><div class="spinner"></div><div style="margin-top:10px; color:#666;">系統資料載入中...</div></div>
+  <div id="successModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center;">
+    <div style="background:white; padding:40px; border-radius:16px; max-width:400px; text-align:center;">
+      <h2>🎉 報名成功！</h2>
+      <p>請加入官方 Line <b>@850idwyv</b> 並主動告知品牌名稱。</p>
+      <button class="btn" onclick="location.reload()" style="width:100%; margin-top:20px;">完成</button>
+    </div>
+  </div>
+
+  <div class="container" id="appView">
+    <div class="brand-header">
+        <h2 id="appTitle">市集報名系統</h2>
+    </div>
+    <div style="background:#fff4e6; color:#d35400; padding:15px; border-radius:var(--radius); font-size:0.95em; margin-bottom:30px; border:1px solid #ffe0b2;">
+      <b>⚠️ 重要提醒：</b>報名後請務必加入官方 Line <b>@850idwyv</b> 並主動告知品牌名稱。
+    </div>
+    
+    <form id="regForm">
+      <label>品牌名稱</label><input type="text" name="brandName" required placeholder="行銷曝光使用">
+      <label>主要商品</label><input type="text" name="mainProduct" required>
+      <label>品牌/商品照片 (最多5張)</label><input type="file" id="fileInput" multiple accept="image/*" required>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:10px;">
+        <div><label>聯絡人</label><input type="text" name="contactName" required></div>
+        <div><label>電話</label><input type="tel" name="contactPhone" required></div>
+      </div>
+      <label>Line ID</label><input type="text" name="lineId" required>
+      <label>社群連結</label><input type="text" name="socialLink" placeholder="IG/FB/官網">
+      
+      <hr style="margin:30px 0; border:0; border-top:1px dashed #ccc;">
+      
+      <h3 style="text-align:left; border-left:4px solid var(--accent); padding-left:10px;">1. 選擇報名檔期</h3>
+      <div id="groupsContainer"></div> 
+      
+      <h3 style="text-align:left; border-left:4px solid var(--accent); padding-left:10px; margin-top:40px;">2. 確認費用</h3>
+      <div id="batchConfigArea">
+        <div style="color:#888; font-style:italic; padding:15px; background:#f9f9f9; border-radius:8px; text-align:center;">請先選擇上方日期，此處將顯示對應的攤位選項。</div>
+      </div>
+      
+      <div style="background:#f9f9f9; padding:20px; margin-top:25px; border-radius:var(--radius); border:1px solid #eee;">
+        <div style="font-weight:bold; font-size:1.4em; text-align:right; color:var(--text);">總金額：<span id="txtTotal">NT$ 0</span></div>
+      </div>
+
+      <button type="button" class="btn" onclick="submitData()" style="width:100%; margin-top:30px; padding:15px; font-size:1.1em;">送出報名</button>
+    </form>
+  </div>
+  
+  <div class="container hidden" id="adminView" style="max-width:1100px; border-top:5px solid var(--accent);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
+        <h3>後台管理中心</h3>
+        <button onclick="logout()" class="btn-sm">登出</button>
+      </div>
+      
+      <div class="admin-nav">
+        <button onclick="switchTab('list')" id="btn-list" class="active">報名列表</button>
+        <button onclick="switchTab('schedule')" id="btn-schedule">排程總表</button>
+        <button onclick="switchTab('finance')" id="btn-finance">財務報表</button>
+        <button onclick="switchTab('blacklist')" id="btn-blacklist" style="color:#dc3545; border-color:#dc3545;">違規名單</button>
+        <button onclick="switchTab('settings')" id="btn-settings">檔期設定</button>
+        <button onclick="downloadExcel()" style="margin-left:auto; background:#28a745; color:white; border:none;">📥 下載Excel</button>
+      </div>
+
+      <div id="tab-list">
+        <table class="compact-table">
+          <thead>
+            <tr>
+              <th style="width:30%;">品牌 / 聯絡資訊</th>
+              <th style="width:30%;">報名內容</th>
+              <th style="width:15%;">繳費狀態</th>
+              <th style="width:15%;">審核狀態</th>
+              <th style="width:10%;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="regTableBody"></tbody>
+        </table>
+      </div>
+
+      <div id="tab-schedule" class="hidden"><div id="scheduleContainer"></div></div>
+
+      <div id="tab-finance" class="hidden">
+        <div id="financeContainer"></div>
+        <div id="grandTotalArea" style="margin-top:30px; padding:20px; background:#2c3e50; color:white; text-align:center; border-radius:8px;">
+           </div>
+      </div>
+
+      <div id="tab-blacklist" class="hidden"><table class="compact-table"><tbody id="blacklistBody"></tbody></table></div>
+      
+      <div id="tab-settings" class="hidden">
+         <div style="text-align:center; color:#666;">(請使用 Google Sheet 修改設定以確保資料完整性)</div>
+      </div>
+  </div>
+
+  <div id="admin-trigger" onclick="adminLoginPrompt()"><i class="fas fa-cog"></i></div>
+
+  <script>
+    // ★★★ GAS 網址 ★★★
+    const API_URL = "https://script.google.com/macros/s/AKfycbxbIYMNXxNr672zQ0BvAYBy1UQwjtRRkOBfHxYOZPPo5V3hAcK79Lr94yyZYeB7eftr/exec"; 
+
+    let appData = { settings: { dates: [] }, registrations: [] };
+    let selectedDates = []; 
+    let userStallChoices = {}; 
+
+    window.onload = function() { initApp(); };
+
+    async function initApp() {
+        try {
+            let r = await fetch(API_URL + "?action=getInitialData");
+            let d = await r.json();
+            appData = d;
+            document.getElementById('loading').classList.add('hidden');
+            if(appData.settings.systemTitle) document.getElementById('appTitle').innerText = appData.settings.systemTitle;
+            renderFrontGroups(); 
+        } catch(e) {
+            alert("連線失敗：" + e);
+        }
+    }
+
+    // ================= 前台邏輯 (保持原樣) =================
+
+    function renderFrontGroups() {
+        const c = document.getElementById('groupsContainer'); c.innerHTML = '';
+        const batches = appData.settings.dates || [];
+        
+        if(batches.length === 0) { c.innerHTML = '<p style="text-align:center">目前無開放檔期</p>'; return; }
+
+        batches.forEach((grp, idx) => {
+            let info = (typeof grp === 'string') ? { theme: grp, start: grp, end: grp, stalls: [] } : grp;
+            const dates = getDatesInRange(info.start, info.end);
+            
+            let dateCardsHtml = '';
+            dates.forEach(ds => {
+                dateCardsHtml += `
+                  <div class="date-card" onclick="toggleDate('${ds}', ${idx}, this)">
+                    <div style="font-weight:bold; font-size:1.1em;">${ds.slice(5)}</div>
+                    <div style="font-size:0.8em; color:#888;">${getDayName(ds)}</div>
+                  </div>`;
+            });
+
+            let html = `
+              <div class="group-container">
+                <div class="group-header" onclick="toggleGroupDesc(${idx})">
+                   <div>
+                     <div class="group-title">${info.theme}</div>
+                     <div class="group-date-range"><i class="far fa-calendar-alt"></i> ${info.start} ~ ${info.end}</div>
+                   </div>
+                   <button class="desc-toggle-btn" type="button" id="btn-desc-${idx}">詳情 ▼</button>
+                </div>
+                <div class="group-desc-content" id="desc-${idx}">${info.description || '無詳細說明'}</div>
+                <div class="group-dates-area">
+                   <div class="date-grid">${dateCardsHtml}</div>
+                </div>
+              </div>
+            `;
+            c.innerHTML += html;
+        });
+    }
+
+    function toggleGroupDesc(idx) {
+        const el = document.getElementById(`desc-${idx}`);
+        const btn = document.getElementById(`btn-desc-${idx}`);
+        if(el.style.display === 'block') { el.style.display = 'none'; btn.innerText = '詳情 ▼'; }
+        else { el.style.display = 'block'; btn.innerText = '收起 ▲'; }
+    }
+
+    window.toggleDate = function(dateStr, batchIdx, el) {
+        if(selectedDates.includes(dateStr)) {
+            selectedDates = selectedDates.filter(d => d !== dateStr);
+            el.classList.remove('selected');
+            if(userStallChoices[batchIdx]) {
+                userStallChoices[batchIdx].dates = userStallChoices[batchIdx].dates.filter(d => d !== dateStr);
+            }
+        } else {
+            selectedDates.push(dateStr);
+            el.classList.add('selected');
+            if(!userStallChoices[batchIdx]) userStallChoices[batchIdx] = { dates: [], type: '' };
+            userStallChoices[batchIdx].dates.push(dateStr);
+        }
+        renderBatchConfigurators();
+    }
+
+    function renderBatchConfigurators() {
+        const area = document.getElementById('batchConfigArea'); area.innerHTML = '';
+        const activeBatches = Object.keys(userStallChoices).filter(idx => userStallChoices[idx].dates.length > 0);
+
+        if(activeBatches.length === 0) {
+            area.innerHTML = '<div style="color:#888; font-style:italic; padding:15px; background:#f9f9f9; border-radius:8px; text-align:center;">請先選擇上方日期，此處將顯示對應的攤位選項。</div>';
+            document.getElementById('txtTotal').innerText = 'NT$ 0';
+            return;
+        }
+
+        activeBatches.forEach(idx => {
+            const batchInfo = appData.settings.dates[idx];
+            const dates = userStallChoices[idx].dates.sort();
+            const currentChoice = userStallChoices[idx].type || '';
+
+            let optionsHtml = '<option value="" disabled selected>請選擇攤位類型</option>';
+            if(batchInfo.stalls && batchInfo.stalls.length > 0) {
+                batchInfo.stalls.forEach(s => {
+                    optionsHtml += `<option value="${s.name}|${s.price}" ${currentChoice.startsWith(s.name)?'selected':''}>${s.name} ($${s.price})</option>`;
+                });
+            } else {
+                optionsHtml += `<option value="一般攤位|800" ${currentChoice.startsWith('一般')?'selected':''}>一般攤位 ($800)</option>`;
+            }
+
+            area.innerHTML += `
+              <div class="batch-card">
+                 <div class="batch-header">${batchInfo.theme}</div>
+                 <div class="batch-dates">已選日期：${dates.join(', ')}</div>
+                 <select style="width:100%; padding:10px;" onchange="updateBatchChoice(${idx}, this.value)">
+                    ${optionsHtml}
+                 </select>
+                 <div class="batch-subtotal" id="subtotal-${idx}">小計：NT$ 0</div>
+              </div>
+            `;
+            if(currentChoice) calculateTotal();
+        });
+    }
+
+    window.updateBatchChoice = function(idx, val) {
+        userStallChoices[idx].type = val;
+        calculateTotal();
+    }
+
+    function calculateTotal() {
+        let grandTotal = 0;
+        Object.keys(userStallChoices).forEach(idx => {
+            const choice = userStallChoices[idx];
+            if(choice.dates.length > 0 && choice.type) {
+                const price = parseInt(choice.type.split('|')[1]);
+                const sub = (price * choice.dates.length) + 1000;
+                grandTotal += sub;
+                const subEl = document.getElementById(`subtotal-${idx}`);
+                if(subEl) subEl.innerText = `租金 $${price * choice.dates.length} + 押金 $1000 = 小計 NT$ ${sub}`;
+            }
+        });
+        document.getElementById('txtTotal').innerText = `NT$ ${grandTotal}`;
+        return grandTotal;
+    }
+
+    async function submitData() {
+        const form = document.getElementById('regForm');
+        if(!form.brandName.value) return alert("請填寫品牌名稱");
+        
+        let hasSelection = false;
+        let finalSummary = "";
+        let finalTotal = 0;
+        let allDates = [];
+
+        Object.keys(userStallChoices).forEach(idx => {
+            const c = userStallChoices[idx];
+            if(c.dates.length > 0 && c.type) {
+                hasSelection = true;
+                const batchName = appData.settings.dates[idx].theme;
+                const stallName = c.type.split('|')[0];
+                const price = parseInt(c.type.split('|')[1]);
+                const sub = (price * c.dates.length) + 1000;
+                
+                finalSummary += `【${batchName}】${stallName} x ${c.dates.length}天 ($${sub})\n日期：${c.dates.join(', ')}\n`;
+                finalTotal += sub;
+                allDates = allDates.concat(c.dates);
+            }
+        });
+
+        if(!hasSelection) return alert("請至少選擇一個檔期與攤位類型！");
+
+        document.getElementById('loading').classList.remove('hidden');
+
+        const files = [];
+        const fileInput = document.getElementById('fileInput');
+        if(fileInput.files.length > 0) {
+            for(let f of fileInput.files) {
+                let base64 = await readFile(f);
+                files.push({ name: f.name, mimeType: f.type, data: base64 });
+            }
+        }
+
+        const payload = {
+            brandName: form.brandName.value,
+            concept: form.concept ? form.concept.value : '',
+            mainProduct: form.mainProduct.value,
+            contactName: form.contactName.value,
+            contactPhone: form.contactPhone.value,
+            lineId: form.lineId.value,
+            socialLink: form.socialLink.value,
+            selectedDates: allDates.join(','),
+            stallSummary: finalSummary,
+            finalTotal: finalTotal,
+            files: files
+        };
+
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'submit', payload: payload })
+        }).then(r => r.json()).then(res => {
+            document.getElementById('loading').classList.add('hidden');
+            if(res.success) document.getElementById('successModal').style.display = 'flex';
+            else alert("失敗：" + res.error);
+        });
+    }
+
+    function readFile(file) {
+        return new Promise((resolve) => {
+            const r = new FileReader();
+            r.onload = e => resolve(e.target.result.split(',')[1]);
+            r.readAsDataURL(file);
+        });
+    }
+
+    // ================= 後台邏輯 (V40 優化版) =================
+
+    function adminLoginPrompt() {
+        const p = prompt("請輸入管理員密碼");
+        if(p) {
+            document.getElementById('loading').classList.remove('hidden');
+            fetch(API_URL + "?action=verifyLogin&pass=" + p).then(r => r.json()).then(res => {
+                document.getElementById('loading').classList.add('hidden');
+                if(res.success) {
+                    document.getElementById('appView').classList.add('hidden');
+                    document.getElementById('adminView').classList.remove('hidden');
+                    switchTab('list');
+                } else alert("密碼錯誤");
+            });
+        }
+    }
+
+    function switchTab(t) {
+        ['list','schedule','finance','blacklist','settings'].forEach(x => document.getElementById('tab-'+x).classList.add('hidden'));
+        document.getElementById('tab-'+t).classList.remove('hidden');
+        document.querySelectorAll('.admin-nav button').forEach(b => b.classList.remove('active'));
+        document.getElementById('btn-'+t).classList.add('active');
+        
+        if(t === 'list') renderRegList();
+        if(t === 'schedule') renderSchedule();
+        if(t === 'finance') renderFinance();
+    }
+
+    // --- 1. 報名列表 (優化：資訊堆疊 + 按鈕式狀態) ---
+    function renderRegList() {
+        const b = document.getElementById('regTableBody'); b.innerHTML = '';
+        const list = [...appData.registrations].reverse();
+        
+        list.forEach(r => {
+            b.innerHTML += `<tr>
+              <td>
+                <div class="info-stack">
+                  <span class="info-main">${r.brandName}</span>
+                  <span class="info-sub">${r.contactName || r.contact}</span>
+                  <span class="info-sub">${r.contactPhone || ''}</span>
+                  <span class="info-date">${r.timestamp.slice(0,16)}</span>
+                </div>
+              </td>
+              <td>
+                <div class="info-stack">
+                  <span style="font-size:0.85em; white-space:pre-wrap;">${r.stallSummary}</span>
+                  <span class="info-main" style="margin-top:5px;">$${r.total}</span>
+                </div>
+              </td>
+              <td>
+                <select class="status-select ${getPayColor(r.paymentStatus)}" onchange="updateStat('${r.id}','paymentStatus',this.value, this)">
+                  <option value="未繳款" ${r.paymentStatus==='未繳款'?'selected':''}>未繳款</option>
+                  <option value="已繳款" ${r.paymentStatus==='已繳款'?'selected':''}>已繳款</option>
+                  <option value="已退費" ${r.paymentStatus==='已退費'?'selected':''}>已退費</option>
+                </select>
+              </td>
+              <td>
+                <select class="status-select ${getAuditColor(r.status)}" onchange="updateStat('${r.id}','status',this.value, this)">
+                  <option value="未通知" ${r.status==='未通知'?'selected':''}>未通知</option>
+                  <option value="錄取" ${r.status==='錄取'?'selected':''}>錄取</option>
+                  <option value="不錄取" ${r.status==='不錄取'?'selected':''}>不錄取</option>
+                  <option value="違反規定" ${r.status==='違反規定'?'selected':''}>違反規定</option>
+                </select>
+              </td>
+              <td>
+                 <div style="display:flex; gap:10px;">
+                   <a href="${r.folderUrl}" target="_blank" style="text-decoration:none; font-size:1.2em;">📁</a>
+                   <span style="cursor:pointer; color:red; font-size:1.2em;" onclick="delReg('${r.id}')">✕</span>
+                 </div>
+              </td>
+            </tr>`;
+        });
+    }
+
+    function getPayColor(s) {
+        if(s === '已繳款') return 'st-paid';
+        if(s === '已退費') return 'st-refund';
+        return 'st-unpaid';
+    }
+    function getAuditColor(s) {
+        if(s === '錄取') return 'st-ok';
+        if(s === '不錄取') return 'st-refund';
+        if(s === '違反規定') return 'st-ban';
+        return 'st-audit';
+    }
+
+    // --- 2. 排程總表 (優化：依檔期 + 圓點顏色) ---
+    function renderSchedule() {
+        const c = document.getElementById('scheduleContainer'); c.innerHTML = '';
+        
+        appData.settings.dates.forEach(batch => {
+            let bInfo = (typeof batch === 'string') ? {theme:batch, start:batch, end:batch, stalls:[]} : batch;
+            
+            let html = `<div class="schedule-block">
+              <div class="block-header" style="background:#f8f9fa; color:#333; border-bottom:1px solid #ddd;">
+                <span>${bInfo.theme}</span>
+                <span style="font-size:0.9em; opacity:0.8;">${bInfo.start}~${bInfo.end}</span>
+              </div>
+              <div style="padding:10px;">`;
+            
+            const dates = getDatesInRange(bInfo.start, bInfo.end);
+            dates.forEach(d => {
+                const dayRegs = appData.registrations.filter(r => 
+                  r.dates.includes(d) && r.stallSummary.includes(bInfo.theme) && r.status !== '違反規定'
+                );
+
+                // 統計攤位 (可選)
+                let statsHtml = '';
+                if(bInfo.stalls) {
+                   bInfo.stalls.forEach(st => {
+                      const count = dayRegs.filter(r => r.stallSummary.includes(st.name)).length;
+                      const limit = st.limit || 999;
+                      statsHtml += `<span style="font-size:0.8em; margin-right:10px; color:#666;">${st.name}: ${count}/${limit}</span>`;
+                   });
+                }
+
+                let brandsHtml = dayRegs.map(r => {
+                     let dotClass = 'dot-red'; 
+                     if(r.paymentStatus === '已繳款') dotClass = 'dot-green';
+                     if(r.paymentStatus === '已退費') dotClass = 'dot-gray';
+                     
+                     let style = r.status === '不錄取' ? 'text-decoration:line-through; color:#aaa;' : '';
+                     return `<span class="brand-pill" style="${style}">
+                       <span class="status-dot ${dotClass}"></span> ${r.brandName}
+                     </span>`;
+                }).join('');
+
+                html += `<div class="schedule-date-row">
+                   <div style="display:flex; justify-content:space-between;">
+                      <div style="font-weight:bold; color:var(--primary);">${d} (${getDayName(d)})</div>
+                      <div>${statsHtml}</div>
+                   </div>
+                   <div>${brandsHtml || '<span style="color:#ccc; font-size:0.85em;">無報名</span>'}</div>
+                </div>`;
+            });
+            html += `</div></div>`;
+            c.innerHTML += html;
+        });
+    }
+
+    // --- 3. 財務報表 (優化：自動拆帳與統計) ---
+    function renderFinance() {
+        const c = document.getElementById('financeContainer'); c.innerHTML = '';
+        const grandTotalArea = document.getElementById('grandTotalArea');
+        
+        let grandReceivable = 0, grandReceived = 0, grandRefunded = 0;
+
+        appData.settings.dates.forEach(batch => {
+            let bInfo = (typeof batch === 'string') ? {theme:batch} : batch;
+            // 找出該檔期訂單 (包含 stallSummary 關鍵字的)
+            const regs = appData.registrations.filter(r => r.stallSummary.includes(bInfo.theme));
+            
+            let receivable = 0, received = 0, uncollected = 0, refunded = 0;
+            let rowsHtml = '';
+            
+            regs.forEach(r => {
+                const m = parseInt(r.total) || 0;
+                // 若已退費 -> 不計入應收，計入已退費
+                if(r.paymentStatus === '已退費') {
+                    refunded += m;
+                    rowsHtml += `<tr style="color:#aaa; text-decoration:line-through;">
+                      <td>${r.brandName}</td><td>$${m.toLocaleString()}</td><td>已退費</td>
+                    </tr>`;
+                } else if (r.status === '違反規定' || r.status === '不錄取') {
+                    // 忽略
+                } else {
+                    receivable += m; // 應收
+                    if(r.paymentStatus === '已繳款') {
+                        received += m; // 已收
+                    } else {
+                        uncollected += m; // 未收
+                    }
+                    rowsHtml += `<tr>
+                      <td>${r.brandName}</td><td>$${m.toLocaleString()}</td><td style="color:${r.paymentStatus==='已繳款'?'green':'red'}">${r.paymentStatus}</td>
+                    </tr>`;
+                }
+            });
+
+            grandReceivable += receivable;
+            grandReceived += received;
+            grandRefunded += refunded;
+
+            c.innerHTML += `
+              <div class="finance-block">
+                 <div class="block-header">${bInfo.theme}</div>
+                 <div class="finance-summary">
+                    <div class="f-item"><span style="font-size:0.8em; color:#777;">應收總額</span><span class="f-val">$${receivable.toLocaleString()}</span></div>
+                    <div class="f-item"><span style="font-size:0.8em; color:#777;">已收 (已繳)</span><span class="f-val val-green">$${received.toLocaleString()}</span></div>
+                    <div class="f-item"><span style="font-size:0.8em; color:#777;">未收</span><span class="f-val val-red">$${uncollected.toLocaleString()}</span></div>
+                    <div class="f-item"><span style="font-size:0.8em; color:#777;">已退費</span><span class="f-val val-gray">$${refunded.toLocaleString()}</span></div>
+                 </div>
+                 <div style="max-height:200px; overflow-y:auto; padding:0 10px;">
+                    <table class="compact-table" style="margin-top:0;">
+                       <thead><tr><th>品牌</th><th>金額</th><th>狀態</th></tr></thead>
+                       <tbody>${rowsHtml || '<tr><td colspan="3" style="text-align:center; color:#ccc;">無資料</td></tr>'}</tbody>
+                    </table>
+                 </div>
+              </div>
+            `;
+        });
+
+        // 總收益總結
+        grandTotalArea.innerHTML = `
+           <h3>當期總租金收益總結</h3>
+           <div style="font-size:2em; font-weight:bold; margin:10px 0;">$${grandReceived.toLocaleString()}</div>
+           <div style="font-size:0.9em; opacity:0.8;">
+             總應收：$${grandReceivable.toLocaleString()} | 總退費：$${grandRefunded.toLocaleString()} (不計入)
+           </div>
+        `;
+    }
+
+    // --- API & 工具 ---
+    async function updateStat(id, type, val, el) {
+        // 前端即時變色
+        if(el) {
+            if(type === 'paymentStatus') el.className = `status-select ${getPayColor(val)}`;
+            if(type === 'status') el.className = `status-select ${getAuditColor(val)}`;
+        }
+        
+        // 更新本地資料
+        const t = appData.registrations.find(r=>r.id===id); if(t) t[type] = val;
+        
+        // 背景送出
+        await fetch(API_URL, { method:'POST', body:JSON.stringify({ action:'updateStatus', id:id, type:type, value:val }) });
+        
+        // 刷新連動頁面 (若該頁面正在顯示)
+        if(!document.getElementById('tab-finance').classList.contains('hidden')) renderFinance();
+        if(!document.getElementById('tab-schedule').classList.contains('hidden')) renderSchedule();
+    }
+
+    async function delReg(id) {
+        if(!confirm("確定刪除？")) return;
+        appData.registrations = appData.registrations.filter(r=>r.id!==id);
+        renderRegList(); // 立即重繪列表
+        await fetch(API_URL, { method:'POST', body:JSON.stringify({ action:'updateStatus', id:id, type:'delete', value:'' }) });
+    }
+
+    function downloadExcel() { window.open(API_URL + "?action=excel"); }
+
+    function getDatesInRange(start, end) {
+        const arr = []; let dt = new Date(start); const last = new Date(end);
+        while(dt <= last) { arr.push(dt.toISOString().split('T')[0]); dt.setDate(dt.getDate() + 1); }
+        return arr;
+    }
+    function getDayName(dStr) { return ['日','一','二','三','四','五','六'][new Date(dStr).getDay()]; }
+  </script>
+</body>
+</html>
